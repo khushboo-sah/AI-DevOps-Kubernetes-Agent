@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { saveInvestigationProgress } from "@/services/investigations";
 import { insforge } from "@/services/insforge";
 import { ProgressStep, ProgressStatus } from "@/types/investigation";
 
@@ -16,6 +17,7 @@ const INITIAL_STEPS: ProgressStep[] = [
 ];
 
 type ProgressMessage = {
+  runId: string;
   stepId: string;
   status: ProgressStatus;
 };
@@ -76,10 +78,29 @@ export function useInvestigationProgress(userId?: string) {
     setSteps(INITIAL_STEPS);
   }, []);
 
+  const getStepLabel = useCallback((stepId: string) => {
+    return INITIAL_STEPS.find((step) => step.id === stepId)?.label ?? stepId;
+  }, []);
+
   const publishProgress = useCallback(
-    async (stepId: string, status: ProgressStatus) => {
-      const message = { stepId, status };
+    async (stepId: string, status: ProgressStatus, runId: string) => {
+      const stepLabel = getStepLabel(stepId);
+      const message = { runId, stepId, status };
       applyProgress(message);
+
+      if (userId) {
+        try {
+          await saveInvestigationProgress({
+            userId,
+            runId,
+            stepId,
+            stepLabel,
+            status,
+          });
+        } catch {
+          // Progress persistence should not block the investigation UI.
+        }
+      }
 
       if (!channel || !isRealtimeReady) {
         return;
@@ -91,7 +112,7 @@ export function useInvestigationProgress(userId?: string) {
         // Local progress already updated; realtime is best-effort for this MVP.
       }
     },
-    [applyProgress, channel, isRealtimeReady],
+    [applyProgress, channel, getStepLabel, isRealtimeReady, userId],
   );
 
   return {

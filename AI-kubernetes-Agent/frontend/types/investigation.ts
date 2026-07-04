@@ -51,3 +51,13 @@ export type ProgressStep = {
   label: string;
   status: ProgressStatus;
 };
+
+export type InvestigationProgressRecord = {
+  id: string;
+  investigation_id: string | null;
+  run_id: string;
+  step_id: string;
+  step_label: string;
+  status: ProgressStatus;
+  created_at: string;
+};

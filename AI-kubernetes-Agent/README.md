@@ -87,6 +87,7 @@ The frontend dashboard uses InsForge for:
 - Authentication and session handling
 - Realtime investigation progress events
 - Recent investigation history stored in the `investigations` table
+- Persisted progress steps stored in the `investigation_progress` table
 
 ## Environment
 

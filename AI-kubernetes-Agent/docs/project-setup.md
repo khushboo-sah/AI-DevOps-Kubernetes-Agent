@@ -12,7 +12,7 @@ Implemented:
 - Frontend dashboard modules for components, services, hooks, and types
 - InsForge authentication for the protected dashboard
 - InsForge realtime progress events during investigations
-- InsForge investigation history table with user-scoped RLS policies
+- InsForge `investigations` and `investigation_progress` tables with user-scoped RLS policies
 - Dockerfiles for backend and frontend
 - Docker Compose wiring for ports `8000` and `3000`
 - Kubectl-based inspectors for pods, logs, events, deployments, services, and endpoints

@@ -10,6 +10,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useInvestigationProgress } from "@/hooks/useInvestigationProgress";
 import {
   fetchInvestigationHistory,
+  linkInvestigationProgress,
   runInvestigation,
   saveInvestigationHistory,
 } from "@/services/investigations";
@@ -49,23 +50,27 @@ export function Dashboard() {
     setError(null);
     setIsInvestigating(true);
     resetProgress();
+    const runId = crypto.randomUUID();
 
     try {
       for (const stepId of PROGRESS_SEQUENCE.slice(0, -2)) {
-        await publishProgress(stepId, "active");
-        await publishProgress(stepId, "complete");
+        await publishProgress(stepId, "active", runId);
+        await publishProgress(stepId, "complete", runId);
       }
 
-      await publishProgress("ai", "active");
+      await publishProgress("ai", "active", runId);
       const response = await runInvestigation();
-      await publishProgress("ai", "complete");
-      await publishProgress("root-cause", "complete");
+      await publishProgress("ai", "complete", runId);
+      await publishProgress("root-cause", "complete", runId);
 
       setDiagnosis(response.diagnosis);
-      await saveInvestigationHistory(user.id, response);
+      const investigationId = await saveInvestigationHistory(user.id, response);
+      if (investigationId) {
+        await linkInvestigationProgress(user.id, runId, investigationId);
+      }
       await historyQuery.refetch();
     } catch (caughtError) {
-      await publishProgress("root-cause", "error");
+      await publishProgress("root-cause", "error", runId);
       setError(
         caughtError instanceof Error
           ? caughtError.message
