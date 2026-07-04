@@ -1,3 +1,20 @@
+export type ClusterContext = {
+  name: string;
+  cluster: string;
+  user: string;
+  namespace: string | null;
+  cluster_server: string | null;
+  is_current: boolean;
+};
+
+export type ClusterListResponse = {
+  kubeconfig_path: string | null;
+  kubeconfig_found: boolean;
+  current_context: string | null;
+  contexts: ClusterContext[];
+  errors: string[];
+};
+
 export type Diagnosis = {
   root_cause: string;
   explanation: string;
@@ -12,8 +29,11 @@ export type Diagnosis = {
 };
 
 export type InvestigationResponse = {
-  status: "success";
+  status: "success" | "partial" | "healthy" | "error";
+  cluster_context: string | null;
+  message?: string | null;
   investigation: {
+    cluster_context: string | null;
     pods: {
       healthy: boolean;
       problematic_pods: Array<{
@@ -21,18 +41,29 @@ export type InvestigationResponse = {
         namespace: string;
         status: string;
       }>;
+      errors: string[];
     };
-    logs: unknown;
-    events: unknown;
+    logs: {
+      errors: string[];
+    };
+    events: {
+      findings: Array<{ reason: string; message: string }>;
+      errors: string[];
+    };
     deployments: {
       unhealthy_deployments: Array<{
         name: string;
         namespace: string;
       }>;
+      errors: string[];
     };
-    network: unknown;
+    network: {
+      issues: Array<{ type: string; message: string }>;
+      errors: string[];
+    };
   };
   diagnosis: Diagnosis;
+  errors: string[];
 };
 
 export type InvestigationHistoryRecord = {

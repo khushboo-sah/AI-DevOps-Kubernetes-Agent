@@ -1,14 +1,24 @@
 import { apiClient } from "@/services/api";
 import { insforge } from "@/services/insforge";
 import {
+  ClusterListResponse,
   InvestigationHistoryRecord,
   InvestigationProgressRecord,
   InvestigationResponse,
   ProgressStatus,
 } from "@/types/investigation";
 
-export async function runInvestigation(): Promise<InvestigationResponse> {
-  const response = await apiClient.post<InvestigationResponse>("/investigate");
+export async function fetchClusters(): Promise<ClusterListResponse> {
+  const response = await apiClient.get<ClusterListResponse>("/clusters");
+  return response.data;
+}
+
+export async function runInvestigation(
+  context?: string,
+): Promise<InvestigationResponse> {
+  const response = await apiClient.post<InvestigationResponse>("/investigate", {
+    context: context ?? null,
+  });
   return response.data;
 }
 
@@ -125,5 +135,5 @@ function getPrimaryNamespace(response: InvestigationResponse): string | null {
     return firstDeployment.namespace;
   }
 
-  return null;
+  return response.investigation.cluster_context;
 }

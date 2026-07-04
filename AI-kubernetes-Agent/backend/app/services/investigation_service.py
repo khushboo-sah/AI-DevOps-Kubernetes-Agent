@@ -15,8 +15,13 @@ from app.models.investigation import Diagnosis, InvestigationPayload
 class InvestigationService:
     """Run the Kubernetes investigation workflow."""
 
-    def __init__(self, executor: KubectlExecutor | None = None) -> None:
-        self.executor = executor or KubectlExecutor()
+    def __init__(
+        self,
+        executor: KubectlExecutor | None = None,
+        context: str | None = None,
+    ) -> None:
+        self.context = context
+        self.executor = executor or KubectlExecutor(context=context)
         self.pod_inspector = PodInspector(self.executor)
         self.logs_collector = LogsCollector(self.executor)
         self.events_analyzer = EventsAnalyzer(self.executor)
@@ -27,7 +32,10 @@ class InvestigationService:
     def run_investigation(self) -> InvestigationPayload:
         """Collect Kubernetes troubleshooting evidence in a predictable order."""
 
-        logger.info("Starting Kubernetes investigation")
+        logger.info(
+            "Starting Kubernetes investigation for context {}",
+            self.context or "default",
+        )
         pods = self.pod_inspector.inspect()
         logs = self.logs_collector.collect(pods.problematic_pods)
         events = self.events_analyzer.analyze()
@@ -36,6 +44,7 @@ class InvestigationService:
         logger.info("Finished Kubernetes investigation")
 
         return InvestigationPayload(
+            cluster_context=self.context,
             pods=pods,
             logs=logs,
             events=events,

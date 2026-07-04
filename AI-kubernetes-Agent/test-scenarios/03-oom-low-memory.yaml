@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oom-low-memory
+  namespace: agent-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oom-low-memory
+  template:
+    metadata:
+      labels:
+        app: oom-low-memory
+    spec:
+      containers:
+        - name: app
+          image: polinux/stress
+          command: ["stress"]
+          args: ["--vm", "1", "--vm-bytes", "128M", "--vm-hang", "1"]
+          resources:
+            limits:
+              memory: "32Mi"
+            requests:
+              memory: "16Mi"

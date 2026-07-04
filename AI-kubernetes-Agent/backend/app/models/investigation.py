@@ -112,6 +112,7 @@ class NetworkInspectionResult(BaseModel):
 class InvestigationPayload(BaseModel):
     """All evidence collected during a Kubernetes investigation."""
 
+    cluster_context: str | None = None
     pods: PodInspectionResult
     logs: LogsCollectionResult
     events: EventsAnalysisResult
@@ -134,9 +135,18 @@ class Diagnosis(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class InvestigationRequest(BaseModel):
+    """Optional parameters for POST /investigate."""
+
+    context: str | None = None
+
+
 class InvestigationResponse(BaseModel):
     """API response for POST /investigate."""
 
     status: str
+    cluster_context: str | None = None
+    message: str | None = None
     investigation: InvestigationPayload
     diagnosis: Diagnosis
+    errors: list[str] = Field(default_factory=list)

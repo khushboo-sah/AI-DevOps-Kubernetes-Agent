@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: selector-mismatch-app
+  namespace: agent-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: selector-mismatch-app
+  template:
+    metadata:
+      labels:
+        app: selector-mismatch-app
+        version: v1
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: selector-mismatch-svc
+  namespace: agent-test
+spec:
+  selector:
+    app: wrong-label-that-does-not-match
+  ports:
+    - port: 80
+      targetPort: 80

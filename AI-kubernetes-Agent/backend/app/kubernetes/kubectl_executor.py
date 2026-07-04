@@ -35,7 +35,12 @@ class KubectlResult:
 class KubectlExecutor:
     """Small wrapper around subprocess for kubectl calls."""
 
-    def __init__(self, default_timeout_seconds: int = 30) -> None:
+    def __init__(
+        self,
+        context: str | None = None,
+        default_timeout_seconds: int = 30,
+    ) -> None:
+        self.context = context
         self.default_timeout_seconds = default_timeout_seconds
 
     def run(
@@ -131,6 +136,9 @@ class KubectlExecutor:
 
         if settings.kubeconfig_path:
             command.extend(["--kubeconfig", settings.kubeconfig_path])
+
+        if self.context:
+            command.extend(["--context", self.context])
 
         command.extend(args)
         return command

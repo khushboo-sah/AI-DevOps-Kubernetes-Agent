@@ -3,9 +3,10 @@ import { InvestigationHistoryRecord } from "@/types/investigation";
 type HistoryTableProps = {
   history: InvestigationHistoryRecord[];
   isLoading: boolean;
+  error?: string | null;
 };
 
-export function HistoryTable({ history, isLoading }: HistoryTableProps) {
+export function HistoryTable({ history, isLoading, error }: HistoryTableProps) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-950">Recent Investigations</h2>
@@ -24,6 +25,12 @@ export function HistoryTable({ history, isLoading }: HistoryTableProps) {
               <tr>
                 <td className="px-4 py-4 text-slate-500" colSpan={4}>
                   Loading history...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td className="px-4 py-4 text-red-600" colSpan={4}>
+                  {error}
                 </td>
               </tr>
             ) : history.length === 0 ? (

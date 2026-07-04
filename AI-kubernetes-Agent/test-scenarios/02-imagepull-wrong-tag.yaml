@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagepull-wrong-tag
+  namespace: agent-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imagepull-wrong-tag
+  template:
+    metadata:
+      labels:
+        app: imagepull-wrong-tag
+    spec:
+      containers:
+        - name: app
+          image: nginx:definitely-not-a-real-tag-404

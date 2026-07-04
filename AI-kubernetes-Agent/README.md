@@ -1,8 +1,6 @@
 # AI Kubernetes Agent
 
-An on-demand troubleshooting foundation for investigating Kubernetes issues with a FastAPI orchestrator and a Next.js frontend.
-
-This setup intentionally does not include Kubernetes inspection, AI reasoning, OpenRouter calls, InsForge data features, authentication, or realtime updates yet.
+An on-demand Kubernetes troubleshooting product: investigate real cluster failures, reason with AI, and view diagnoses in a protected dashboard.
 
 ## Architecture
 
@@ -15,33 +13,33 @@ Kubernetes Investigation Layer
     ↓
 AI Kubernetes Agent
     ↓
-LLM Reasoning (OpenRouter via InsForge)
+LLM Reasoning (OpenRouter)
     ↓
 Root Cause + Suggested Fix
     ↓
+InsForge (Auth + History + Realtime)
+    ↓
 Frontend Diagnosis
 ```
+
+## Features
+
+- InsForge authentication (signup, login, email verification)
+- Cluster picker — lists all contexts from your local kubeconfig
+- One-click investigation with progress steps and realtime updates
+- AI diagnosis via OpenRouter with rule-based fallback
+- Investigation history persisted in InsForge
+- Beginner-friendly error messages for kubectl, cluster, and API failures
+- Test scenarios for CrashLoopBackOff, ImagePullBackOff, OOMKilled, and service selector mismatch
 
 ## Project Structure
 
 ```text
 AI-kubernetes-Agent/
 ├── backend/
-│   └── app/
-│       ├── api/
-│       ├── core/
-│       ├── kubernetes/
-│       ├── ai/
-│       ├── services/
-│       └── models/
 ├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── services/
-│   ├── hooks/
-│   └── types/
 ├── docs/
-├── prompts/
+├── test-scenarios/
 ├── docker-compose.yml
 └── README.md
 ```
@@ -51,70 +49,71 @@ AI-kubernetes-Agent/
 From this folder:
 
 ```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+# Set OPENROUTER_API_KEY in backend/.env
 docker compose up --build
 ```
+
+Docker mounts `~/.kube` into the backend so all clusters in your kubeconfig appear in the dashboard.
 
 Then open:
 
 - Frontend: http://localhost:3000
 - Backend health: http://localhost:8000/health
-- Kubernetes investigation and diagnosis: `POST http://localhost:8000/investigate`
 
-Expected health response:
+### End-to-end workflow
 
-```json
-{
-  "status": "healthy",
-  "service": "ai-kubernetes-agent"
-}
+```text
+Login → Select cluster → Investigate Cluster
+    → kubectl evidence → AI reasoning → diagnosis + history
 ```
 
-Example investigation request:
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/health` | No | Service health |
+| GET | `/clusters` | Yes | List kubeconfig contexts |
+| POST | `/investigate` | Yes | Investigate selected cluster (`{ "context": "..." }`) |
+
+## Test Real Kubernetes Failures
+
+See `test-scenarios/README.md` for four intentional failure manifests:
+
+1. CrashLoopBackOff — missing environment variable
+2. ImagePullBackOff — wrong image tag
+3. OOMKilled — low memory limits
+4. Service selector mismatch
 
 ```bash
-curl -X POST http://localhost:8000/investigate
+kubectl apply -f test-scenarios/01-crashloop-missing-env.yaml
+# Investigate in dashboard, then clean up
+kubectl delete namespace agent-test
 ```
 
-The investigation endpoint uses `kubectl` internally to collect evidence from
-the active Kubernetes context, then sends that evidence to the AI Kubernetes
-Agent for Senior SRE-style diagnosis. OpenRouter credentials are read from
-environment variables and are never hardcoded. If no cluster, kubeconfig, or
-OpenRouter key is available, the response still returns structured evidence and
-a fallback diagnosis with error details.
-
-The frontend dashboard uses InsForge for:
-
-- Authentication and session handling
-- Realtime investigation progress events
-- Recent investigation history stored in the `investigations` table
-- Persisted progress steps stored in the `investigation_progress` table
-
 ## Environment
-
-Copy the example files and fill in secrets before running locally or with Docker:
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-Set `OPENROUTER_API_KEY` in `backend/.env` for AI diagnosis. Docker Compose loads `backend/.env` automatically.
-
-Backend variables are documented in `backend/.env.example`:
+Backend (`backend/.env`):
 
 ```env
 INSFORGE_API_BASE_URL=https://wznstw3m.eu-central.insforge.app
 OPENROUTER_API_KEY=
-OPENROUTER_MODEL=
+OPENROUTER_MODEL=openai/gpt-4o-mini
 KUBECONFIG_PATH=
 ```
 
-Frontend variables are documented in `frontend/.env.example`:
+Frontend (`frontend/.env.local`):
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_INSFORGE_BASE_URL=https://wznstw3m.eu-central.insforge.app
-NEXT_PUBLIC_INSFORGE_ANON_KEY=anon_c2b40b3499dce755117cd876b8f3e418df36fb323173b5358435d10f732c35fa
+NEXT_PUBLIC_INSFORGE_ANON_KEY=
 ```
 
 ## Local Development
@@ -136,3 +135,5 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Ensure your kubeconfig is available to the backend process (`~/.kube/config` or `KUBECONFIG_PATH`).

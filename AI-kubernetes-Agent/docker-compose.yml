@@ -6,6 +6,9 @@ services:
       - ./backend/.env
     environment:
       INSFORGE_API_BASE_URL: https://wznstw3m.eu-central.insforge.app
+      KUBECONFIG: /root/.kube/config
+    volumes:
+      - ${HOME}/.kube:/root/.kube:ro
     ports:
       - "8000:8000"
 
