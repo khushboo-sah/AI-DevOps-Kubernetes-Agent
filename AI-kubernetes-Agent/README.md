@@ -137,3 +137,30 @@ npm run dev
 ```
 
 Ensure your kubeconfig is available to the backend process (`~/.kube/config` or `KUBECONFIG_PATH`).
+
+### Using kind with Docker
+
+kind stores the API server as `https://127.0.0.1:<port>` in kubeconfig. That works on your Mac, but **not** inside the backend Docker container (127.0.0.1 there means the container itself).
+
+Docker Compose automatically rewrites the API URL to `host.docker.internal` on startup. After pulling latest changes:
+
+```bash
+docker compose up --build
+```
+
+Verify kind is running on your Mac first:
+
+```bash
+kind get clusters
+kubectl cluster-info
+```
+
+**Alternative:** run only the backend locally (always works with kind):
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+Keep the frontend in Docker or run `npm run dev` in `frontend/`.

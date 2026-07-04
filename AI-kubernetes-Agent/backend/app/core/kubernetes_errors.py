@@ -30,6 +30,18 @@ def friendly_kubectl_error(stderr: str, return_code: int | None = None) -> str:
         )
 
     if "connection refused" in text or "unable to connect" in text or "dial tcp" in text:
+        if _looks_like_local_cluster_unreachable(stderr):
+            return (
+                "Unable to connect to the Kubernetes cluster.\n\n"
+                "This often happens with kind, minikube, or k3d when the "
+                "backend runs inside Docker. Your kubeconfig points to 127.0.0.1, "
+                "which works on your Mac but not inside the backend container.\n\n"
+                "Try one of these fixes:\n"
+                "1. Rebuild with the latest docker-compose (auto-rewrites to host.docker.internal)\n"
+                "2. Run the backend locally instead of Docker:\n"
+                "   cd backend && uvicorn app.main:app --reload\n"
+                "3. Confirm kind is running: kind get clusters && kubectl cluster-info"
+            )
         return (
             "Unable to connect to the Kubernetes cluster.\n\n"
             "Please verify:\n"
@@ -107,6 +119,13 @@ def summarize_investigation_errors(errors: Sequence[str]) -> str | None:
             "dial tcp",
         )
     ):
+        if _looks_like_local_cluster_unreachable(" ".join(errors)):
+            return (
+                "Unable to connect to the Kubernetes cluster.\n\n"
+                "If you use kind/minikube with Docker, the API server is on 127.0.0.1 "
+                "on your Mac but not reachable from inside the backend container. "
+                "Rebuild with docker compose up --build, or run the backend locally."
+            )
         return (
             "Unable to connect to the Kubernetes cluster.\n\n"
             "Please verify:\n"
@@ -125,3 +144,12 @@ def summarize_investigation_errors(errors: Sequence[str]) -> str | None:
         )
 
     return errors[0]
+
+
+def _looks_like_local_cluster_unreachable(stderr: str) -> bool:
+    text = (stderr or "").lower()
+    return (
+        "127.0.0.1" in text
+        or "localhost" in text
+        or "[::1]" in text
+    )

@@ -7,6 +7,10 @@ services:
     environment:
       INSFORGE_API_BASE_URL: https://wznstw3m.eu-central.insforge.app
       KUBECONFIG: /root/.kube/config
+      # kind/minikube use 127.0.0.1 — rewrite for Docker (see backend/scripts/docker-entrypoint.sh)
+      KUBE_API_REWRITE_HOST: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
     ports:
