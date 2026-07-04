@@ -23,8 +23,10 @@ export function AuthPanel() {
       if (mode === "sign-in") {
         await signIn(email, password);
       } else if (mode === "sign-up") {
-        await signUp(email, password, name || undefined);
-        setMode("verify");
+        const requiresVerification = await signUp(email, password, name || undefined);
+        if (requiresVerification) {
+          setMode("verify");
+        }
       } else {
         await verifyEmail(email, otp);
       }

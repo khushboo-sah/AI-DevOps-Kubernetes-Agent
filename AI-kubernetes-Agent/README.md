@@ -91,6 +91,15 @@ The frontend dashboard uses InsForge for:
 
 ## Environment
 
+Copy the example files and fill in secrets before running locally or with Docker:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+```
+
+Set `OPENROUTER_API_KEY` in `backend/.env` for AI diagnosis. Docker Compose loads `backend/.env` automatically.
+
 Backend variables are documented in `backend/.env.example`:
 
 ```env
@@ -105,7 +114,7 @@ Frontend variables are documented in `frontend/.env.example`:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_INSFORGE_BASE_URL=https://wznstw3m.eu-central.insforge.app
-NEXT_PUBLIC_INSFORGE_ANON_KEY=
+NEXT_PUBLIC_INSFORGE_ANON_KEY=anon_c2b40b3499dce755117cd876b8f3e418df36fb323173b5358435d10f732c35fa
 ```
 
 ## Local Development

@@ -24,7 +24,7 @@ type AuthSessionContextValue = {
   isLoading: boolean;
   authMessage: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<boolean>;
   verifyEmail: (email: string, otp: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -49,13 +49,32 @@ export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
       const storedToken = getAccessToken();
       setAccessTokenState(storedToken);
 
-      const { data } = await insforge.auth.getCurrentUser();
-      if (!isMounted) {
-        return;
-      }
+      try {
+        const { data, error } = await insforge.auth.getCurrentUser();
+        if (!isMounted) {
+          return;
+        }
 
-      setUser((data?.user as AuthUser | null) ?? null);
-      setIsLoading(false);
+        if (error || !data?.user) {
+          if (storedToken) {
+            clearAccessToken();
+            setAccessTokenState(null);
+          }
+          setUser(null);
+        } else {
+          setUser(data.user as AuthUser);
+        }
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setUser(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     }
 
     loadCurrentUser();
@@ -103,12 +122,14 @@ export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
 
       if (data?.requireEmailVerification) {
         setAuthMessage("Check your email for the verification code, then enter it below.");
-        return;
+        return true;
       }
 
       if (data?.accessToken && data.user) {
         persistSession(data.accessToken, data.user as AuthUser);
       }
+
+      return false;
     },
     [persistSession],
   );

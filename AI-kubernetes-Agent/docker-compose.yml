@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
     environment:
       INSFORGE_API_BASE_URL: https://wznstw3m.eu-central.insforge.app
     ports:
@@ -15,10 +15,11 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
         NEXT_PUBLIC_INSFORGE_BASE_URL: https://wznstw3m.eu-central.insforge.app
-        NEXT_PUBLIC_INSFORGE_ANON_KEY: ""
+        NEXT_PUBLIC_INSFORGE_ANON_KEY: anon_c2b40b3499dce755117cd876b8f3e418df36fb323173b5358435d10f732c35fa
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
       NEXT_PUBLIC_INSFORGE_BASE_URL: https://wznstw3m.eu-central.insforge.app
+      NEXT_PUBLIC_INSFORGE_ANON_KEY: anon_c2b40b3499dce755117cd876b8f3e418df36fb323173b5358435d10f732c35fa
     ports:
       - "3000:3000"
     depends_on:
