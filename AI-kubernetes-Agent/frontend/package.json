@@ -9,6 +9,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.4.3",
     "@tanstack/react-query": "latest",
     "axios": "latest",
     "next": "latest",

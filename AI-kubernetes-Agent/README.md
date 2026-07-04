@@ -82,11 +82,18 @@ environment variables and are never hardcoded. If no cluster, kubeconfig, or
 OpenRouter key is available, the response still returns structured evidence and
 a fallback diagnosis with error details.
 
+The frontend dashboard uses InsForge for:
+
+- Authentication and session handling
+- Realtime investigation progress events
+- Recent investigation history stored in the `investigations` table
+
 ## Environment
 
 Backend variables are documented in `backend/.env.example`:
 
 ```env
+INSFORGE_API_BASE_URL=https://wznstw3m.eu-central.insforge.app
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=
 KUBECONFIG_PATH=
@@ -96,6 +103,8 @@ Frontend variables are documented in `frontend/.env.example`:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_INSFORGE_BASE_URL=https://wznstw3m.eu-central.insforge.app
+NEXT_PUBLIC_INSFORGE_ANON_KEY=
 ```
 
 ## Local Development
