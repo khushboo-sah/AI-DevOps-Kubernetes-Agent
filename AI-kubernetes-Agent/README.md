@@ -99,6 +99,8 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
+**How to get `OPENROUTER_API_KEY`:** see [docs/openrouter-setup.md](docs/openrouter-setup.md) (create a free account at [openrouter.ai/keys](https://openrouter.ai/keys)).
+
 Backend (`backend/.env`):
 
 ```env
