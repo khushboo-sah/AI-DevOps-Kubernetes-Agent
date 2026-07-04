@@ -37,10 +37,13 @@ def friendly_kubectl_error(stderr: str, return_code: int | None = None) -> str:
                 "backend runs inside Docker. Your kubeconfig points to 127.0.0.1, "
                 "which works on your Mac but not inside the backend container.\n\n"
                 "Try one of these fixes:\n"
-                "1. Rebuild with the latest docker-compose (auto-rewrites to host.docker.internal)\n"
-                "2. Run the backend locally instead of Docker:\n"
+                "1. Start kind first, then rebuild:\n"
+                "   kind create cluster\n"
+                "   docker compose up --build\n"
+                "2. Confirm your context name starts with kind- (e.g. kind-kind)\n"
+                "3. Run the backend on your Mac instead of Docker:\n"
                 "   cd backend && uvicorn app.main:app --reload\n"
-                "3. Confirm kind is running: kind get clusters && kubectl cluster-info"
+                "4. Verify kind works locally: kubectl cluster-info"
             )
         return (
             "Unable to connect to the Kubernetes cluster.\n\n"

@@ -140,27 +140,37 @@ Ensure your kubeconfig is available to the backend process (`~/.kube/config` or 
 
 ### Using kind with Docker
 
-kind stores the API server as `https://127.0.0.1:<port>` in kubeconfig. That works on your Mac, but **not** inside the backend Docker container (127.0.0.1 there means the container itself).
+kind stores the API server as `https://127.0.0.1:<port>` in kubeconfig. That works on your Mac, but **not** inside the backend Docker container.
 
-Docker Compose automatically rewrites the API URL to `host.docker.internal` on startup. After pulling latest changes:
+**Fix (automatic):** the backend joins kind's Docker network and talks to `<cluster>-control-plane:6443`.
+
+**Steps — run in this order:**
 
 ```bash
+# 1. Create/start kind (creates the "kind" Docker network)
+kind create cluster
+# or: kind get clusters   # if already created
+
+# 2. Verify kubectl works on your Mac
+kubectl cluster-info
+
+# 3. Rebuild and start the app
 docker compose up --build
 ```
 
-Verify kind is running on your Mac first:
+In the dashboard, select the context named like `kind-kind` (or `kind-<your-cluster-name>`).
 
-```bash
-kind get clusters
-kubectl cluster-info
-```
+**If docker compose fails with "network kind not found":** run `kind create cluster` first.
 
-**Alternative:** run only the backend locally (always works with kind):
+**Alternative:** run only the backend on your Mac (always works with kind):
 
 ```bash
 cd backend
 source .venv/bin/activate
+pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
 Keep the frontend in Docker or run `npm run dev` in `frontend/`.
+
+**TLS errors with kind in Docker:** set `KUBE_INSECURE_SKIP_TLS=true` in `docker-compose.yml` backend environment (dev only).

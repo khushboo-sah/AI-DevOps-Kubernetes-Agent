@@ -1,9 +1,10 @@
 #!/bin/sh
 set -e
 
-# kind/minikube/kubeconfig often use 127.0.0.1 or localhost for the API server.
-# Inside Docker, those addresses point at the container — not your Mac/host.
-# Rewrite them to host.docker.internal so kubectl in the backend can reach kind.
+# kind/minikube kubeconfig uses 127.0.0.1 — unreachable from inside Docker.
+# kind clusters: backend joins the "kind" Docker network and kubectl uses
+# https://<cluster>-control-plane:6443 (see app/kubernetes/kind_docker.py).
+# Other local clusters: rewrite API URL to host.docker.internal.
 if [ -n "${KUBE_API_REWRITE_HOST:-}" ] && [ -f /root/.kube/config ]; then
   sed \
     -e "s|https://127.0.0.1|https://${KUBE_API_REWRITE_HOST}|g" \
@@ -13,7 +14,11 @@ if [ -n "${KUBE_API_REWRITE_HOST:-}" ] && [ -f /root/.kube/config ]; then
     /root/.kube/config > /tmp/kubeconfig-docker.yaml
   export KUBECONFIG=/tmp/kubeconfig-docker.yaml
   export KUBECONFIG_PATH=/tmp/kubeconfig-docker.yaml
-  echo "Rewrote kubeconfig API server to ${KUBE_API_REWRITE_HOST} for Docker"
+  echo "Prepared Docker kubeconfig (host fallback: ${KUBE_API_REWRITE_HOST})"
+fi
+
+if [ "${KUBE_KIND_DOCKER_NETWORK:-}" = "true" ]; then
+  echo "kind Docker network mode enabled (API via <cluster>-control-plane:6443)"
 fi
 
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000

@@ -1,6 +1,7 @@
 """Utilities for executing kubectl commands safely."""
 
 import json
+import os
 import shlex
 import subprocess
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from typing import Any, Sequence
 from loguru import logger
 
 from app.core.config import get_settings
+from app.kubernetes.kind_docker import resolve_api_server
 
 
 @dataclass(frozen=True)
@@ -134,11 +136,26 @@ class KubectlExecutor:
         settings = get_settings()
         command = ["kubectl"]
 
-        if settings.kubeconfig_path:
-            command.extend(["--kubeconfig", settings.kubeconfig_path])
+        kubeconfig = settings.kubeconfig_path or os.getenv("KUBECONFIG")
+        if kubeconfig:
+            command.extend(["--kubeconfig", kubeconfig])
 
         if self.context:
             command.extend(["--context", self.context])
+            api_server = resolve_api_server(self.context)
+            if api_server:
+                logger.info(
+                    "Using kind Docker network API server {} for context {}",
+                    api_server,
+                    self.context,
+                )
+                command.extend(["--server", api_server])
+                if os.getenv("KUBE_INSECURE_SKIP_TLS", "").lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }:
+                    command.append("--insecure-skip-tls-verify")
 
         command.extend(args)
         return command
