@@ -45,12 +45,13 @@ export function useInvestigationProgress(userId?: string) {
       return;
     }
 
+    const activeChannel = channel;
     let isMounted = true;
 
     async function subscribe() {
       try {
         await insforge.realtime.connect();
-        const response = await insforge.realtime.subscribe(channel);
+        const response = await insforge.realtime.subscribe(activeChannel);
         if (isMounted) {
           setIsRealtimeReady(response.ok);
         }
@@ -67,7 +68,7 @@ export function useInvestigationProgress(userId?: string) {
     return () => {
       isMounted = false;
       insforge.realtime.off("progress_updated", applyProgress);
-      insforge.realtime.unsubscribe(channel);
+      insforge.realtime.unsubscribe(activeChannel);
     };
   }, [applyProgress, channel]);
 
