@@ -2,11 +2,13 @@
 
 from functools import lru_cache
 from os import getenv
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-load_dotenv()
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_BACKEND_ROOT / ".env")
 
 
 class Settings(BaseModel):
@@ -32,11 +34,15 @@ def _split_csv(value: str | None, default: list[str]) -> list[str]:
 def get_settings() -> Settings:
     """Return cached settings from the current process environment."""
 
+    api_key = getenv("OPENROUTER_API_KEY")
+    if api_key is not None and not api_key.strip():
+        api_key = None
+
     return Settings(
         log_level=getenv("LOG_LEVEL", "INFO"),
         cors_origins=_split_csv(getenv("CORS_ORIGINS"), ["http://localhost:3000"]),
         insforge_api_base_url=getenv("INSFORGE_API_BASE_URL"),
-        openrouter_api_key=getenv("OPENROUTER_API_KEY"),
+        openrouter_api_key=api_key,
         openrouter_model=getenv("OPENROUTER_MODEL"),
-        kubeconfig_path=getenv("KUBECONFIG_PATH"),
+        kubeconfig_path=getenv("KUBECONFIG_PATH") or None,
     )

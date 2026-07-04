@@ -21,6 +21,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
     logger.info("Starting {}", settings.service_name)
+    if settings.openrouter_api_key:
+        logger.info("OpenRouter API key is configured")
+    else:
+        logger.warning(
+            "OPENROUTER_API_KEY is not set — investigations will use rule-based "
+            "diagnosis only. Add the key to backend/.env and restart the backend."
+        )
     yield
     logger.info("Stopping {}", settings.service_name)
 
