@@ -119,8 +119,24 @@ class InvestigationPayload(BaseModel):
     network: NetworkInspectionResult
 
 
+class Diagnosis(BaseModel):
+    """Senior SRE-style diagnosis generated from investigation evidence."""
+
+    root_cause: str
+    explanation: str
+    fix: str
+    kubectl_command: str
+    kubectl_commands: list[str] = Field(default_factory=list)
+    prevention_recommendation: str
+    confidence: int = Field(ge=0, le=100)
+    confidence_reasoning: list[str] = Field(default_factory=list)
+    source: str = "llm"
+    errors: list[str] = Field(default_factory=list)
+
+
 class InvestigationResponse(BaseModel):
     """API response for POST /investigate."""
 
     status: str
     investigation: InvestigationPayload
+    diagnosis: Diagnosis

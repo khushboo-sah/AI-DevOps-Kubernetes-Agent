@@ -2,13 +2,14 @@
 
 from loguru import logger
 
+from app.ai.agent import AIKubernetesAgent
 from app.kubernetes.deployment_inspector import DeploymentInspector
 from app.kubernetes.events_analyzer import EventsAnalyzer
 from app.kubernetes.kubectl_executor import KubectlExecutor
 from app.kubernetes.logs_collector import LogsCollector
 from app.kubernetes.network_inspector import NetworkInspector
 from app.kubernetes.pod_inspector import PodInspector
-from app.models.investigation import InvestigationPayload
+from app.models.investigation import Diagnosis, InvestigationPayload
 
 
 class InvestigationService:
@@ -21,6 +22,7 @@ class InvestigationService:
         self.events_analyzer = EventsAnalyzer(self.executor)
         self.deployment_inspector = DeploymentInspector(self.executor)
         self.network_inspector = NetworkInspector(self.executor)
+        self.ai_agent = AIKubernetesAgent()
 
     def run_investigation(self) -> InvestigationPayload:
         """Collect Kubernetes troubleshooting evidence in a predictable order."""
@@ -40,6 +42,17 @@ class InvestigationService:
             deployments=deployments,
             network=network,
         )
+
+    def diagnose_investigation(
+        self,
+        investigation: InvestigationPayload,
+    ) -> Diagnosis:
+        """Generate a Senior SRE-style diagnosis from collected evidence."""
+
+        logger.info("Starting AI Kubernetes diagnosis")
+        diagnosis = self.ai_agent.diagnose(investigation)
+        logger.info("Finished AI Kubernetes diagnosis with source {}", diagnosis.source)
+        return diagnosis
 
 
 def start_investigation() -> InvestigationPayload:

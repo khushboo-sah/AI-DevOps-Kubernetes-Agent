@@ -58,7 +58,7 @@ Then open:
 
 - Frontend: http://localhost:3000
 - Backend health: http://localhost:8000/health
-- Kubernetes investigation: `POST http://localhost:8000/investigate`
+- Kubernetes investigation and diagnosis: `POST http://localhost:8000/investigate`
 
 Expected health response:
 
@@ -76,8 +76,11 @@ curl -X POST http://localhost:8000/investigate
 ```
 
 The investigation endpoint uses `kubectl` internally to collect evidence from
-the active Kubernetes context. If no cluster or kubeconfig is available, the
-response still returns structured sections with error details.
+the active Kubernetes context, then sends that evidence to the AI Kubernetes
+Agent for Senior SRE-style diagnosis. OpenRouter credentials are read from
+environment variables and are never hardcoded. If no cluster, kubeconfig, or
+OpenRouter key is available, the response still returns structured evidence and
+a fallback diagnosis with error details.
 
 ## Environment
 
