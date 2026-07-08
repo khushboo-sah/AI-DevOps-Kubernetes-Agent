@@ -1,0 +1,36 @@
+{
+  "name": "ai-kubernetes-agent-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@insforge/sdk": "^1.4.3",
+    "@tanstack/react-query": "latest",
+    "axios": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-darwin-arm64": "4.3.2",
+    "@tailwindcss/oxide-linux-arm64-musl": "4.3.2",
+    "@tailwindcss/oxide-linux-x64-musl": "4.3.2",
+    "lightningcss-darwin-arm64": "1.32.0",
+    "lightningcss-linux-arm64-musl": "1.32.0",
+    "lightningcss-linux-x64-musl": "1.32.0"
+  }
+}
