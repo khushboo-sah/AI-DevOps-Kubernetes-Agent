@@ -128,6 +128,7 @@ export function Dashboard() {
       await publishProgress("root-cause", "complete", runId);
 
       setDiagnosis(response.diagnosis);
+      setProblematicPods(response.investigation.pods.problematic_pods);
       setInvestigationStatus(response.status);
       setInvestigationMessage(response.message ?? null);
 
@@ -237,12 +238,18 @@ export function Dashboard() {
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
-          <ProgressList isInvestigating={isInvestigating} steps={steps} />
+          <ProgressList
+            hasIssues={problematicPods.length > 0}
+            isHealthy={investigationStatus === "healthy"}
+            isInvestigating={isInvestigating}
+            steps={steps}
+          />
           <DiagnosisCard
             diagnosis={diagnosis}
             isHealthy={investigationStatus === "healthy"}
             isInvestigating={isInvestigating}
             message={investigationMessage}
+            problematicPods={problematicPods}
             warnings={warnings}
           />
         </div>

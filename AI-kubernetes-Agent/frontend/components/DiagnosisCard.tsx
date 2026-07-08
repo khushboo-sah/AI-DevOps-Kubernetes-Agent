@@ -66,20 +66,47 @@ export function DiagnosisCard({
 
   const confidenceClass = isHealthy
     ? "rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700"
-    : "rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700";
+    : problematicPods.length > 0
+      ? "rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700"
+      : "rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700";
+
+  const primaryStatus = problematicPods[0]?.status;
 
   return (
     <div
       className={
         isHealthy
           ? "rounded-2xl border border-emerald-200 bg-emerald-50/40 p-6 shadow-sm"
-          : "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          : problematicPods.length > 0
+            ? "rounded-2xl border border-red-200 bg-red-50/30 p-6 shadow-sm"
+            : "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
       }
     >
+      {problematicPods.length > 0 && primaryStatus ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-100 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-red-800">
+            Cluster issue detected
+          </p>
+          <p className="mt-1 text-lg font-bold text-red-900">{primaryStatus}</p>
+          <p className="mt-1 text-sm text-red-800">
+            {problematicPods.length} unhealthy pod
+            {problematicPods.length === 1 ? "" : "s"} found during investigation
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-            {isHealthy ? "Healthy Cluster" : "Diagnosis"}
+          <p
+            className={
+              isHealthy
+                ? "text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600"
+                : problematicPods.length > 0
+                  ? "text-sm font-semibold uppercase tracking-[0.2em] text-red-600"
+                  : "text-sm font-semibold uppercase tracking-[0.2em] text-blue-600"
+            }
+          >
+            {isHealthy ? "Healthy Cluster" : problematicPods.length > 0 ? "Issues Found" : "Diagnosis"}
           </p>
           <h2 className="mt-2 text-2xl font-bold text-slate-950">
             {isHealthy ? "No Critical Issues Detected" : "Root Cause"}
