@@ -46,6 +46,18 @@ class FixRecommendationEngine:
                 "Set realistic resource requests and limits based on observed application memory usage.",
             )
 
+        if "exited" in root_cause_lower or "non-zero" in root_cause_lower:
+            pod_name = self._first_pod_name(investigation)
+            return (
+                "Inspect the failing pod logs and fix the startup command, entrypoint, or configuration.",
+                [
+                    f"kubectl describe pod {pod_name} -n {namespace}",
+                    f"kubectl logs {pod_name} -n {namespace}",
+                    f"kubectl delete pod {pod_name} -n {namespace}",
+                ],
+                "Add liveness probes and review container startup commands before deploying.",
+            )
+
         if "not being scheduled" in root_cause_lower:
             return (
                 "Review scheduling events, resource requests, node capacity, taints, and affinity rules.",

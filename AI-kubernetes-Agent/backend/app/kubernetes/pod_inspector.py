@@ -82,16 +82,31 @@ class PodInspector:
             state = container_status.get("state", {})
             last_state = container_status.get("lastState", {})
 
-            waiting_reason = state.get("waiting", {}).get("reason")
-            if waiting_reason in UNHEALTHY_REASONS:
-                return waiting_reason, [container_name]
-
-            terminated_reason = state.get("terminated", {}).get("reason")
-            if terminated_reason in UNHEALTHY_REASONS:
-                return terminated_reason, [container_name]
-
-            last_terminated_reason = last_state.get("terminated", {}).get("reason")
-            if last_terminated_reason in UNHEALTHY_REASONS:
-                return last_terminated_reason, [container_name]
+            for container_state in (state, last_state):
+                problem = self._problem_from_container_state(container_state)
+                if problem is not None:
+                    return problem, [container_name]
 
         return None, []
+
+    def _problem_from_container_state(
+        self,
+        container_state: dict[str, Any],
+    ) -> str | None:
+        waiting_reason = container_state.get("waiting", {}).get("reason")
+        if waiting_reason in UNHEALTHY_REASONS:
+            return waiting_reason
+
+        terminated = container_state.get("terminated", {})
+        if not terminated:
+            return None
+
+        terminated_reason = terminated.get("reason")
+        if terminated_reason in UNHEALTHY_REASONS:
+            return terminated_reason
+
+        exit_code = terminated.get("exitCode", 0)
+        if exit_code != 0 and terminated_reason != "Completed":
+            return terminated_reason or "Error"
+
+        return None

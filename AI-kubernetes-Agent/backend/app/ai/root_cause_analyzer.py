@@ -22,6 +22,9 @@ class RootCauseAnalyzer:
         if "CrashLoopBackOff" in pod_statuses:
             return "A container is repeatedly crashing during startup."
 
+        if "Error" in pod_statuses or "Failed" in pod_statuses:
+            return "A container exited with a non-zero status during startup."
+
         if "OOMKilled" in pod_statuses:
             return "A container is being killed because it is exceeding its memory limit."
 
