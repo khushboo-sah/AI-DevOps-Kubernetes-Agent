@@ -1,15 +1,37 @@
 import { Diagnosis } from "@/types/investigation";
 
+type ProblematicPod = {
+  name: string;
+  namespace: string;
+  status: string;
+};
+
 type DiagnosisCardProps = {
   diagnosis: Diagnosis | null;
+  problematicPods?: ProblematicPod[];
   isInvestigating: boolean;
   isHealthy?: boolean;
   message?: string | null;
   warnings?: string[];
 };
 
+function statusBadgeClass(status: string): string {
+  const normalized = status.toLowerCase();
+  if (normalized.includes("crashloop") || normalized === "error") {
+    return "rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-red-700";
+  }
+  if (normalized.includes("imagepull") || normalized.includes("errimage")) {
+    return "rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-orange-700";
+  }
+  if (normalized.includes("oom")) {
+    return "rounded-full bg-purple-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-700";
+  }
+  return "rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-amber-700";
+}
+
 export function DiagnosisCard({
   diagnosis,
+  problematicPods = [],
   isInvestigating,
   isHealthy = false,
   message,
@@ -83,6 +105,28 @@ export function DiagnosisCard({
       ) : null}
 
       <dl className="mt-6 space-y-5">
+        {problematicPods.length > 0 ? (
+          <div>
+            <dt className="text-sm font-semibold text-slate-500">
+              Kubernetes Pod Status
+            </dt>
+            <dd className="mt-2 space-y-2">
+              {problematicPods.map((pod) => (
+                <div
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  key={`${pod.namespace}/${pod.name}`}
+                >
+                  <div>
+                    <p className="font-medium text-slate-950">
+                      {pod.namespace}/{pod.name}
+                    </p>
+                  </div>
+                  <span className={statusBadgeClass(pod.status)}>{pod.status}</span>
+                </div>
+              ))}
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-sm font-semibold text-slate-500">Root Cause</dt>
           <dd className="mt-1 text-base font-medium text-slate-950">

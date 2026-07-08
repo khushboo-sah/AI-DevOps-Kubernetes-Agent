@@ -14,7 +14,9 @@ root_cause, explanation, fix, kubectl_commands, prevention_recommendation,
 confidence, confidence_reasoning.
 
 Rules:
-- root_cause: one concise sentence naming the most likely cause.
+- root_cause: one concise sentence naming the most likely cause. If evidence shows a
+  Kubernetes pod status (e.g. CrashLoopBackOff, ImagePullBackOff, OOMKilled), include
+  that status in the root_cause sentence.
 - explanation: explain how the evidence connects to that cause.
 - fix: one practical Kubernetes-specific fix.
 - kubectl_commands: an array of safe commands the user can run next.

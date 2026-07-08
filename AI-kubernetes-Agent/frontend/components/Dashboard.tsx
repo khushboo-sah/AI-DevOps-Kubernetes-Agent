@@ -38,6 +38,9 @@ function sleep(ms: number) {
 export function Dashboard() {
   const { accessToken, signOut, user } = useAuthSession();
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [problematicPods, setProblematicPods] = useState<
+    InvestigationResponse["investigation"]["pods"]["problematic_pods"]
+  >([]);
   const [investigationMessage, setInvestigationMessage] = useState<string | null>(
     null,
   );
@@ -106,6 +109,7 @@ export function Dashboard() {
     }
 
     setDiagnosis(null);
+    setProblematicPods([]);
     setInvestigationMessage(null);
     setInvestigationStatus(null);
     setWarnings([]);
