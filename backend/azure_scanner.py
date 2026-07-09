@@ -60,8 +60,7 @@ def _map_az_error(raw_message: str) -> AzureCliError:
 
     if (
         "az login" in lower_message
-        or "please run" in lower_message
-        and "login" in lower_message
+        or ("please run" in lower_message and "login" in lower_message)
         or "not logged in" in lower_message
         or "login required" in lower_message
     ):
