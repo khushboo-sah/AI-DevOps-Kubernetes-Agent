@@ -1,18 +1,24 @@
-"""Tests for Prompt 2 analyze endpoint with AI integration."""
+"""Tests for Prompt 2/3 analyze endpoint integration."""
 
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from main import AnalyzeRequest, analyze_resource_group
 
 
-class TestAnalyzeWithAI(unittest.TestCase):
+class TestAnalyzeWithAI(unittest.IsolatedAsyncioTestCase):
+    @patch("main.save_analysis", new_callable=AsyncMock)
+    @patch("main.progress_manager.send", new_callable=AsyncMock)
     @patch("main.analyze_resources")
     @patch("main.list_resources")
-    def test_post_analyze_returns_ai_analysis(
-        self, mock_list_resources, mock_analyze_resources
+    async def test_post_analyze_returns_ai_analysis_and_stores_result(
+        self,
+        mock_list_resources,
+        mock_analyze_resources,
+        mock_send,
+        mock_save_analysis,
     ) -> None:
         mock_list_resources.return_value = [
             {
@@ -43,17 +49,20 @@ class TestAnalyzeWithAI(unittest.TestCase):
                 "az vm resize --resource-group rg-demo --name vm-demo --size Standard_B2s"
             ],
         }
+        mock_save_analysis.return_value = 42
 
-        response = analyze_resource_group(AnalyzeRequest(resource_group="rg-demo"))
+        response = await analyze_resource_group(
+            AnalyzeRequest(resource_group="rg-demo", analysis_id="run-123"),
+            user_id=7,
+        )
 
+        self.assertEqual(response["id"], 42)
         self.assertEqual(response["resource_group"], "rg-demo")
         self.assertEqual(response["count"], 1)
-        self.assertIn("analysis", response)
         self.assertEqual(response["analysis"]["issues"][0]["severity"], "high")
-        mock_list_resources.assert_called_once_with("rg-demo")
-        mock_analyze_resources.assert_called_once_with(
-            "rg-demo", mock_list_resources.return_value
-        )
+        mock_save_analysis.assert_awaited_once()
+        mock_send.assert_any_await("Analyzing costs with AI...")
+        mock_send.assert_any_await("Analysis complete")
 
 
 if __name__ == "__main__":
