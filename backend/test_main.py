@@ -61,8 +61,8 @@ class TestAnalyzeWithAI(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response["count"], 1)
         self.assertEqual(response["analysis"]["issues"][0]["severity"], "high")
         mock_save_analysis.assert_awaited_once()
-        mock_send.assert_any_await("Analyzing costs with AI...")
-        mock_send.assert_any_await("Analysis complete")
+        mock_send.assert_any_await("run-123", "Analyzing costs with AI...")
+        mock_send.assert_any_await("run-123", "Analysis complete")
 
 
 if __name__ == "__main__":
