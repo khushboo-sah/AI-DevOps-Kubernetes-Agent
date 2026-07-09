@@ -10,11 +10,11 @@ load_dotenv(backend_dir / ".env")
 load_dotenv(backend_dir.parent / ".env")
 
 try:
-    from ai_analyzer import AIAnalyzerError, analyze_resources
     from azure_scanner import AzureCliError, list_resource_groups, list_resources
+    from cost_detector import CostDetectorError, detect_cost_issues
 except ModuleNotFoundError:
-    from .ai_analyzer import AIAnalyzerError, analyze_resources
     from .azure_scanner import AzureCliError, list_resource_groups, list_resources
+    from .cost_detector import CostDetectorError, detect_cost_issues
 
 
 app = FastAPI(title="AI Cloud Cost Detective API")
@@ -62,8 +62,8 @@ def analyze_resource_group(request: AnalyzeRequest) -> dict[str, object]:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     try:
-        analysis = analyze_resources(resource_group, resources)
-    except AIAnalyzerError as exc:
+        analysis = detect_cost_issues(resource_group, resources)
+    except CostDetectorError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     return {
