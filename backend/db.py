@@ -81,6 +81,59 @@ def _get_pool() -> asyncpg.Pool:
     return pool
 
 
+async def create_user(email: str, password_hash: str) -> dict[str, Any]:
+    """Create a new user and return the created record."""
+    db_pool = _get_pool()
+
+    try:
+        async with db_pool.acquire() as connection:
+            row = await connection.fetchrow(
+                """
+                INSERT INTO users (email, password_hash)
+                VALUES ($1, $2)
+                RETURNING id, email, created_at
+                """,
+                email,
+                password_hash,
+            )
+    except asyncpg.UniqueViolationError as exc:
+        raise DatabaseError(
+            "An account with this email already exists.",
+            status_code=409,
+        ) from exc
+
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
+async def get_user_by_email(email: str) -> dict[str, Any] | None:
+    """Return a user by email or None if not found."""
+    db_pool = _get_pool()
+
+    async with db_pool.acquire() as connection:
+        row = await connection.fetchrow(
+            """
+            SELECT id, email, password_hash, created_at
+            FROM users
+            WHERE email = $1
+            """,
+            email,
+        )
+
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "password_hash": row["password_hash"],
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
 async def save_analysis(
     *,
     user_id: int | None,

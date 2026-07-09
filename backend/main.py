@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 backend_dir = Path(__file__).resolve().parent
 load_dotenv(backend_dir / ".env")
@@ -16,13 +16,31 @@ load_dotenv(backend_dir.parent / ".env")
 
 try:
     from ai_analyzer import AIAnalyzerError, analyze_resources
+    from auth import AuthError, create_access_token, get_current_user_id, hash_password, verify_password
     from azure_scanner import AzureCliError, list_resource_groups, list_resources
-    from db import DatabaseError, close_db, get_history_for_user, init_db, save_analysis
+    from db import (
+        DatabaseError,
+        close_db,
+        create_user,
+        get_history_for_user,
+        get_user_by_email,
+        init_db,
+        save_analysis,
+    )
     from progress import ProgressManager
 except ModuleNotFoundError:
     from .ai_analyzer import AIAnalyzerError, analyze_resources
+    from .auth import AuthError, create_access_token, get_current_user_id, hash_password, verify_password
     from .azure_scanner import AzureCliError, list_resource_groups, list_resources
-    from .db import DatabaseError, close_db, get_history_for_user, init_db, save_analysis
+    from .db import (
+        DatabaseError,
+        close_db,
+        create_user,
+        get_history_for_user,
+        get_user_by_email,
+        init_db,
+        save_analysis,
+    )
     from .progress import ProgressManager
 
 
@@ -50,25 +68,73 @@ app.add_middleware(
 )
 
 
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
 class AnalyzeRequest(BaseModel):
     resource_group: str = Field(..., min_length=1)
     analysis_id: str = Field(..., min_length=1)
 
 
-def get_current_user_id(
-    x_user_id: Annotated[int | None, Header(alias="X-User-Id")] = None,
-) -> int:
-    """Resolve the authenticated user id from request headers."""
-    if x_user_id is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Provide X-User-Id header.",
-        )
-    return x_user_id
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: int
+    email: str
+
+
+@app.post("/api/auth/signup", response_model=AuthResponse)
+async def signup(request: SignupRequest) -> AuthResponse:
+    """Register a new user and return a JWT."""
+    try:
+        user = await create_user(request.email, hash_password(request.password))
+        token = create_access_token(user["id"], user["email"])
+    except DatabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    except AuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return AuthResponse(
+        access_token=token,
+        user_id=user["id"],
+        email=user["email"],
+    )
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+async def login(request: LoginRequest) -> AuthResponse:
+    """Validate credentials and return a JWT."""
+    try:
+        user = await get_user_by_email(request.email)
+    except DatabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    if user is None or not verify_password(request.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    try:
+        token = create_access_token(user["id"], user["email"])
+    except AuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return AuthResponse(
+        access_token=token,
+        user_id=user["id"],
+        email=user["email"],
+    )
 
 
 @app.get("/api/resource-groups")
-def get_resource_groups() -> dict[str, object]:
+def get_resource_groups(
+    _user_id: Annotated[int, Depends(get_current_user_id)],
+) -> dict[str, object]:
     """Return Azure resource groups from the current Azure CLI context."""
     try:
         resource_groups = list_resource_groups()
@@ -108,17 +174,10 @@ async def get_analysis_history(
     }
 
 
-def get_optional_user_id(
-    x_user_id: Annotated[int | None, Header(alias="X-User-Id")] = None,
-) -> int | None:
-    """Return the authenticated user id when provided."""
-    return x_user_id
-
-
 @app.post("/api/analyze")
 async def analyze_resource_group(
     request: AnalyzeRequest,
-    user_id: Annotated[int | None, Depends(get_optional_user_id)] = None,
+    user_id: Annotated[int, Depends(get_current_user_id)],
 ) -> dict[str, object]:
     """Scan Azure resources, analyze costs, store results, and stream progress."""
     resource_group = request.resource_group.strip()
@@ -154,9 +213,7 @@ async def analyze_resource_group(
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     issues_found = len(analysis.get("issues", []))
-    estimated_savings = (
-        f"${analysis.get('estimated_total_savings_usd', 0)}/month"
-    )
+    estimated_savings = f"${analysis.get('estimated_total_savings_usd', 0)}/month"
 
     try:
         await progress_manager.send(analysis_id, "Storing results...")
