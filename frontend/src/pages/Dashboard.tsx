@@ -8,6 +8,18 @@ import {
 import ProgressTracker from "../components/ProgressTracker";
 import type { AnalyzeResponse, ResourceGroup } from "../types";
 
+function waitForSocketOpen(socket: WebSocket): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      resolve();
+      return;
+    }
+
+    socket.onopen = () => resolve();
+    socket.onerror = () => reject(new Error("WebSocket connection failed."));
+  });
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [resourceGroups, setResourceGroups] = useState<ResourceGroup[]>([]);
@@ -15,6 +27,7 @@ export default function Dashboard() {
   const [progressMessages, setProgressMessages] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState("");
+  const [loadingGroups, setLoadingGroups] = useState(true);
 
   useEffect(() => {
     fetchResourceGroups()
@@ -26,7 +39,8 @@ export default function Dashboard() {
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Failed to load groups");
-      });
+      })
+      .finally(() => setLoadingGroups(false));
   }, []);
 
   async function handleRunAnalysis() {
@@ -46,25 +60,19 @@ export default function Dashboard() {
       setProgressMessages((current) => [...current, event.data]);
     };
 
-    socket.onopen = async () => {
-      try {
-        const result: AnalyzeResponse = await runAnalysis(
-          selectedGroup,
-          analysisId,
-        );
-        navigate("/report", { state: { result } });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Analysis failed");
-      } finally {
-        socket.close();
-        setIsRunning(false);
-      }
-    };
-
-    socket.onerror = () => {
-      setError("WebSocket connection failed.");
+    try {
+      await waitForSocketOpen(socket);
+      const result: AnalyzeResponse = await runAnalysis(
+        selectedGroup,
+        analysisId,
+      );
+      navigate("/report", { state: { result } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Analysis failed");
+    } finally {
+      socket.close();
       setIsRunning(false);
-    };
+    }
   }
 
   return (
@@ -84,19 +92,26 @@ export default function Dashboard() {
           <select
             value={selectedGroup}
             onChange={(event) => setSelectedGroup(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none ring-sky-400 focus:ring-2"
+            disabled={loadingGroups || isRunning}
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none ring-sky-400 focus:ring-2 disabled:opacity-60"
           >
-            {resourceGroups.map((group) => (
-              <option key={group.name} value={group.name}>
-                {group.name} ({group.location})
+            {resourceGroups.length === 0 ? (
+              <option value="">
+                {loadingGroups ? "Loading resource groups..." : "No groups found"}
               </option>
-            ))}
+            ) : (
+              resourceGroups.map((group) => (
+                <option key={group.name} value={group.name}>
+                  {group.name} ({group.location})
+                </option>
+              ))
+            )}
           </select>
 
           <button
             type="button"
             onClick={handleRunAnalysis}
-            disabled={isRunning || !selectedGroup}
+            disabled={isRunning || !selectedGroup || loadingGroups}
             className="mt-6 rounded-xl bg-sky-500 px-5 py-3 font-medium text-slate-950 hover:bg-sky-400 disabled:opacity-60"
           >
             {isRunning ? "Running Analysis..." : "Run Analysis"}

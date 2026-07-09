@@ -7,13 +7,15 @@ export default function History() {
   const navigate = useNavigate();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchHistory()
       .then((response) => setItems(response.analyses))
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Failed to load history");
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -28,7 +30,9 @@ export default function History() {
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
       <div className="space-y-4">
-        {items.length === 0 ? (
+        {loading ? (
+          <p className="text-slate-400">Loading analysis history...</p>
+        ) : items.length === 0 ? (
           <p className="text-slate-400">No analyses stored yet.</p>
         ) : (
           items.map((item) => (
