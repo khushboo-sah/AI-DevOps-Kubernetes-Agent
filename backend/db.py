@@ -55,12 +55,32 @@ async def init_db() -> None:
             status_code=503,
         )
 
-    pool = await asyncpg.create_pool(database_url)
+    if "your-postgres-host" in database_url:
+        raise DatabaseError(
+            "DATABASE_URL still uses the placeholder host. Update backend/.env "
+            "with your Azure PostgreSQL connection string.",
+            status_code=503,
+        )
+
+    try:
+        pool = await asyncpg.create_pool(database_url)
+    except (OSError, asyncpg.PostgresError) as exc:
+        raise DatabaseError(
+            f"Unable to connect to PostgreSQL. Check DATABASE_URL and network access: {exc}",
+            status_code=503,
+        ) from exc
 
     assert pool is not None
-    async with pool.acquire() as connection:
-        await connection.execute(CREATE_USERS_TABLE)
-        await connection.execute(CREATE_ANALYSES_TABLE)
+    try:
+        async with pool.acquire() as connection:
+            await connection.execute(CREATE_USERS_TABLE)
+            await connection.execute(CREATE_ANALYSES_TABLE)
+    except asyncpg.PostgresError as exc:
+        await close_db()
+        raise DatabaseError(
+            f"Unable to initialize database tables: {exc}",
+            status_code=503,
+        ) from exc
 
 
 async def close_db() -> None:

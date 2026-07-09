@@ -51,8 +51,10 @@ progress_manager = ProgressManager()
 async def lifespan(_app: FastAPI):
     try:
         await init_db()
-    except DatabaseError:
-        pass
+    except DatabaseError as exc:
+        print(f"WARNING: Database unavailable at startup: {exc.message}")
+    except Exception as exc:
+        print(f"WARNING: Database initialization failed: {exc}")
     yield
     await close_db()
 
