@@ -2,7 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from azure_scanner import AzureCliError, list_resource_groups, list_resources
+try:
+    from azure_scanner import AzureCliError, list_resource_groups, list_resources
+except ModuleNotFoundError:
+    from .azure_scanner import AzureCliError, list_resource_groups, list_resources
 
 
 app = FastAPI(title="AI Cloud Cost Detective API")
