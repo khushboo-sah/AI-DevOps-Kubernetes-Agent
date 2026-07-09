@@ -1,53 +1,59 @@
-"""Tests for Prompt 1 FastAPI endpoints."""
+"""Tests for Prompt 2 analyze endpoint with AI integration."""
 
 from __future__ import annotations
 
 import unittest
 from unittest.mock import patch
 
-from main import AnalyzeRequest, analyze_resource_group, get_resource_groups
+from main import AnalyzeRequest, analyze_resource_group
 
 
-class TestMainEndpoints(unittest.TestCase):
-    @patch("main.list_resource_groups")
-    def test_get_resource_groups(self, mock_list_groups) -> None:
-        mock_list_groups.return_value = [
-            {"name": "rg-demo", "location": "eastus", "tags": {}}
-        ]
-
-        response = get_resource_groups()
-
-        self.assertEqual(response["count"], 1)
-        self.assertEqual(response["resource_groups"][0]["name"], "rg-demo")
-
+class TestAnalyzeWithAI(unittest.TestCase):
+    @patch("main.analyze_resources")
     @patch("main.list_resources")
-    def test_post_analyze_returns_structured_resources(self, mock_list_resources) -> None:
+    def test_post_analyze_returns_ai_analysis(
+        self, mock_list_resources, mock_analyze_resources
+    ) -> None:
         mock_list_resources.return_value = [
             {
                 "type": "Microsoft.Compute/virtualMachines",
                 "name": "vm-demo",
                 "location": "eastus",
-                "sku": {"name": "Standard_B2s"},
+                "sku": {"name": "Standard_D8s_v3"},
                 "tags": {"env": "dev"},
             }
         ]
+        mock_analyze_resources.return_value = {
+            "summary": "VM appears over-provisioned.",
+            "issues": [
+                {
+                    "title": "Over-provisioned VM",
+                    "description": "Consider a smaller SKU.",
+                    "severity": "high",
+                    "resource_name": "vm-demo",
+                    "resource_type": "Microsoft.Compute/virtualMachines",
+                    "estimated_monthly_savings_usd": 120,
+                    "fix_commands": [
+                        "az vm resize --resource-group rg-demo --name vm-demo --size Standard_B2s"
+                    ],
+                }
+            ],
+            "estimated_total_savings_usd": 120,
+            "fix_commands": [
+                "az vm resize --resource-group rg-demo --name vm-demo --size Standard_B2s"
+            ],
+        }
 
         response = analyze_resource_group(AnalyzeRequest(resource_group="rg-demo"))
 
         self.assertEqual(response["resource_group"], "rg-demo")
         self.assertEqual(response["count"], 1)
-        self.assertEqual(response["resources"][0]["type"], "Microsoft.Compute/virtualMachines")
-        self.assertNotIn("analysis", response)
-
-    @patch("main.list_resources")
-    def test_analyze_with_empty_resource_group_list(self, mock_list_resources) -> None:
-        mock_list_resources.return_value = []
-
-        response = analyze_resource_group(AnalyzeRequest(resource_group="rg-demo"))
-
-        self.assertEqual(response["resource_group"], "rg-demo")
-        self.assertEqual(response["count"], 0)
-        self.assertEqual(response["resources"], [])
+        self.assertIn("analysis", response)
+        self.assertEqual(response["analysis"]["issues"][0]["severity"], "high")
+        mock_list_resources.assert_called_once_with("rg-demo")
+        mock_analyze_resources.assert_called_once_with(
+            "rg-demo", mock_list_resources.return_value
+        )
 
 
 if __name__ == "__main__":

@@ -1,10 +1,19 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+backend_dir = Path(__file__).resolve().parent
+load_dotenv(backend_dir / ".env")
+load_dotenv(backend_dir.parent / ".env")
+
 try:
+    from ai_analyzer import AIAnalyzerError, analyze_resources
     from azure_scanner import AzureCliError, list_resource_groups, list_resources
 except ModuleNotFoundError:
+    from .ai_analyzer import AIAnalyzerError, analyze_resources
     from .azure_scanner import AzureCliError, list_resource_groups, list_resources
 
 
@@ -39,7 +48,7 @@ def get_resource_groups() -> dict[str, object]:
 
 @app.post("/api/analyze")
 def analyze_resource_group(request: AnalyzeRequest) -> dict[str, object]:
-    """Fetch Azure resources for the selected group (Request Flow step ③)."""
+    """Scan Azure resources and return AI-powered cost analysis (step ⑤)."""
     resource_group = request.resource_group.strip()
     if not resource_group:
         raise HTTPException(
@@ -52,21 +61,14 @@ def analyze_resource_group(request: AnalyzeRequest) -> dict[str, object]:
     except AzureCliError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
+    try:
+        analysis = analyze_resources(resource_group, resources)
+    except AIAnalyzerError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
     return {
         "resource_group": resource_group,
         "resources": resources,
         "count": len(resources),
+        "analysis": analysis,
     }
-
-
-try:
-    from cost_routes import router as cost_router
-
-    app.include_router(cost_router)
-except ModuleNotFoundError:
-    try:
-        from .cost_routes import router as cost_router
-
-        app.include_router(cost_router)
-    except ModuleNotFoundError:
-        pass
